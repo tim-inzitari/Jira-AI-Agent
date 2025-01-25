@@ -1,0 +1,64 @@
+# General
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.swp
+*.swo
+.DS_Store
+.idea/
+.vscode/
+
+# Environment
+.env
+.env.local
+.env.development
+.env.test
+secrets/
+
+# Python
+venv/
+ENV/
+env/
+pip-selfcheck.json
+*.egg-info/
+.installed.cfg
+dist/
+build/
+
+# Ollama
+models/  # Only if you have local models
+.ollama/
+
+# Docker
+docker-compose.override.yml
+docker-compose.log
+.dockerignore
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+test-results.xml
+
+# Local development
+tmp/
+temp/
+*.log
+logs/
+.cache
+
+# Jira attachments
+*.jpeg
+*.png
+*.zip
+*.pdf
+
+# Voice/Audio
+*.wav
+*.mp3
+*.ogg
+
+# Editor specific
+*.sublime-*
+*.code-workspace
