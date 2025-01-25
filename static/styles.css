@@ -1,0 +1,142 @@
+/* static/styles.css */
+
+/* Base Styles */
+:root {
+    --primary: #0052cc;
+    --success: #e3fcef;
+    --error: #ffebe6;
+    --text: #172b4d;
+    --border: #dfe1e6;
+    --radius: 6px;
+    --shadow: 0 2px 4px rgba(9,30,66,.15);
+  }
+  
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f4f5f7;
+    color: var(--text);
+    margin: 0;
+    padding: 2rem;
+    min-height: 100vh;
+  }
+  
+  /* Layout */
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  
+  .card {
+    background: white;
+    padding: 2rem;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    transition: box-shadow 0.2s;
+  }
+  
+  /* Form Elements */
+  input[type="text"] {
+    width: 100%;
+    padding: 0.8rem;
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 1rem;
+    margin: 1rem 0;
+    transition: border-color 0.2s;
+  }
+  
+  input[type="text"]:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+  
+  button {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-weight: 500;
+    transition: opacity 0.2s;
+  }
+  
+  button:hover {
+    opacity: 0.9;
+  }
+  
+  /* Status Messages */
+  .status {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    animation: fadeIn 0.3s ease-in;
+    box-shadow: var(--shadow);
+  }
+  
+  .status i {
+    font-size: 1.2em;
+    width: 25px;
+    text-align: center;
+  }
+  
+  .processing {
+    background: #e8f4ff;
+    color: var(--primary);
+    border-left: 4px solid var(--primary);
+  }
+  
+  .success {
+    background: var(--success);
+    color: #006644;
+    border-left: 4px solid #00875a;
+  }
+  
+  .error {
+    background: var(--error);
+    color: #bf2600;
+    border-left: 4px solid #de350b;
+  }
+  
+  /* Animations */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  
+  .fa-spinner {
+    animation: spin 1s linear infinite;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 600px) {
+    body {
+      padding: 1rem;
+    }
+    
+    .card {
+      padding: 1.5rem;
+    }
+    
+    button {
+      width: 100%;
+    }
+    
+    .status {
+      margin: 1rem 0;
+      padding: 0.8rem;
+      font-size: 0.9rem;
+    }
+  }
+  
+  /* Utilities */
+  [hidden] {
+    display: none !important;
+  }

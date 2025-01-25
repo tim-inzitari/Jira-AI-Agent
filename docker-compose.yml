@@ -1,26 +1,26 @@
 version: '3.7'
 
 services:
-  jira-agent:
+services:
+  web:
     build: .
+    command: uvicorn src.web.app:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
     env_file: .env
-    network_mode: "host"  # Critical for cross-machine communication
-    environment:
-      - OLLAMA_HOST=${OLLAMA_HOST}  # Should be http://<remote-ip>:11434
-      - JIRA_SERVER=${JIRA_SERVER}
-      - JIRA_USER=${JIRA_USER}
-      - JIRA_TOKEN=${JIRA_TOKEN}
-      - OLLAMA_REQUEST_TIMEOUT=300
+    volumes:
+      - ./src:/app/src
+      - ./templates:/app/templates
+      - ./static:/app/static
+  cli:
+    build: .
+    command: python src/main.py
+    env_file: .env
+    stdin_open: true  # Enable interactive input
+    tty: true         # Allocate pseudo-TTY
     volumes:
       - ./src:/app/src
       - ./tests:/app/tests
-    command: ["python", "src/main.py"]
-
-  # Optional: Add redis for rate limiting later
-  # redis:
-  #   image: redis:alpine
-  #   ports:
-  #     - "6379:6379"
 
 networks:
   default:

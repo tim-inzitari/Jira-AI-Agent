@@ -9,6 +9,7 @@ pytest-mock>=3.14.0
 regex>=2023.12.25  # For advanced XML/JSON parsing
 jsonschema>=4.22.0  # For response validation
 
-# Optional (uncomment if needed)
-# pydantic>=2.7.1  # For strict data models
-# python-multipart>=0.0.9  # If adding web endpoints
+fastapi>=0.68.0
+uvicorn>=0.15.0
+python-multipart>=0.0.5
+jinja2>=3.0.0

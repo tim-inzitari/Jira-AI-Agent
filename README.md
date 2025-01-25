@@ -1,133 +1,58 @@
 # Jira AI Agent 🤖📋
 
-An AI-powered agent that creates Jira tasks using natural language commands via Ollama LLMs.
+An AI-powered interface for Jira task management via natural language commands.
 
-[![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED?logo=docker)](https://www.docker.com)
+[![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED?logo=docker)]
+[![Jira](https://img.shields.io/badge/Jira-Integrated-0052CC?logo=jira)]
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi)]
 
-[![Jira](https://img.shields.io/badge/Jira-Integration-0052CC?logo=jira)](https://www.atlassian.com/software/jira)
+# Features
+- Web interface (FastAPI + HTMX)
+- CLI version for terminal use
+- Natural language processing via Ollama
+- Jira API integration
+- Safety validation layers
+- Dry-run testing mode
 
-# Features ✨
-
-- 🗣️ Natural language to Jira task creation
-
-- 🔌 Integration with Ollama LLMs (supports Deepseek-r1 models)
-
-- 🔒 Safety checks and command validation
-
-- 🧪 Dry-run mode for testing
-
-- 🛠️ JSON schema validation for AI responses
-
-- 🐳 Docker container support
-
-- ✅ Integration testing framework
-
-# Prerequisites 📋
-
-- Docker and Docker Compose
-
-- Jira instance with API access
-
-- Ollama server (local or remote)
-
-- Python 3.11+ (for development)
-
-# Installation 🚀
-
-```
-
-git clone https://github.com/yourusername/jira-ai-agent.git
-
+# Quick Start
+1. Clone repo:
+git clone https://github.com/YOUR_USER/jira-ai-agent.git
 cd jira-ai-agent
 
+2. Configure environment:
 cp .env.example .env
+nano .env  # Edit credentials
 
-nano .env  # Edit with your credentials
+3. Start services:
+docker-compose up --build web
 
-```
+# Web Interface
+Access at: http://localhost:8000
+- Type commands in textbox
+- Real-time responses
+- Error highlighting
 
-# Configuration ⚙️
+# CLI Usage
+docker-compose run --rm cli
+Example: "Create task in TEST: Update docs"
 
-```
-
-# .env
-
-OLLAMA_HOST=http://your-ollama-server:11434
-
+# Configuration (.env)
+OLLAMA_HOST=http://YOUR_OLLAMA_IP:11434
 JIRA_SERVER=https://your-domain.atlassian.net
-
 JIRA_USER=your@email.com
-
 JIRA_TOKEN=your_api_token
+DRY_RUN=false
 
-DRY_RUN=false  # Set to true for testing
+# Troubleshooting
+- Clean rebuild: docker-compose down --remove-orphans && docker-compose build --no-cache
+- Test connections: curl $OLLAMA_HOST/api/tags
+- Check logs: docker-compose logs web
 
-```
+# Roadmap
+- [x] Web interface
+- [ ] Multi-step commands
+- [ ] User authentication
+- [ ] Slack integration
 
-# Usage 📦
-
-```
-
-# Run interactive mode
-
-docker-compose build
-
-docker-compose run --rm jira-agent python src/main.py
-
-# Example commands:
-
-# Create issue: "Create urgent task in project TEST to update documentation"
-
-# List projects: "Show available projects in TEST"
-
-```
-
-# Safety Measures 🔒
-
-- Command blacklisting (delete/drop/admin)
-
-- Project whitelisting
-
-- JSON schema validation
-
-- Input sanitization
-
-- Rate limiting (coming soon)
-
-# Roadmap 🗺️
-
-- [ ] Support for issue comments
-
-- [ ] Multi-step task creation
-
-- [ ] Web interface
-
-- [ ] Advanced error recovery
-
-# Troubleshooting 🐞
-
-```
-
-# Connection tests
-
-curl $OLLAMA_HOST/api/tags
-
-curl -u $JIRA_USER:$JIRA_TOKEN $JIRA_SERVER/rest/api/2/myself
-
-# Clean rebuild
-
-docker system prune -a
-
-docker-compose build --no-cache
-
-```
-
-# License 📄
-
-MIT License - See [LICENSE](LICENSE)
-
----
-
-**Disclaimer**: Use at your own risk. Always test in a non-production environment first.
-
-```
+# License
+MIT License - Use at your own risk

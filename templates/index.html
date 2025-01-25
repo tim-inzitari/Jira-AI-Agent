@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Jira AI Agent</title>
+    <script src="https://unpkg.com/htmx.org"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="card">
+        <h1>Jira AI Agent 🤖</h1>
+        
+        <!-- Command Form -->
+        <form hx-post="/command" 
+              hx-target="#response" 
+              hx-swap="innerHTML"
+              onsubmit="showProcessing()">
+            <input type="text" 
+                   name="command" 
+                   placeholder="Create task in PROJECT: Update documentation..."
+                   required>
+            <button type="submit">Execute</button>
+        </form>
+
+        <!-- Status Messages -->
+        <div id="processing-message" class="status processing" hidden>
+            <i class="fas fa-spinner fa-spin"></i>
+            <span>Processing your request...</span>
+        </div>
+        
+        <div id="response"></div>
+    </div>
+
+    <script>
+        function showProcessing() {
+            const responseDiv = document.getElementById('response');
+            responseDiv.innerHTML = '';
+            
+            const processingMsg = document.getElementById('processing-message');
+            processingMsg.removeAttribute('hidden');
+        }
+
+        htmx.on('htmx:afterRequest', function(evt) {
+            const processingMsg = document.getElementById('processing-message');
+            processingMsg.setAttribute('hidden', 'true');
+
+            // Auto-dismiss success messages after 5 seconds
+            if (evt.detail.successful) {
+                setTimeout(() => {
+                    document.getElementById('response').innerHTML = '';
+                }, 5000);
+            }
+        });
+    </script>
+</body>
+</html>
