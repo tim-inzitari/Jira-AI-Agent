@@ -4,21 +4,25 @@ services:
   jira-agent:
     build: .
     env_file: .env
+    network_mode: "host"  # Critical for cross-machine communication
     environment:
-      - OLLAMA_HOST=${OLLAMA_HOST}
+      - OLLAMA_HOST=${OLLAMA_HOST}  # Should be http://<remote-ip>:11434
       - JIRA_SERVER=${JIRA_SERVER}
       - JIRA_USER=${JIRA_USER}
       - JIRA_TOKEN=${JIRA_TOKEN}
-      - OLLAMA_REQUEST_TIMEOUT=300000  # Add timeout
-    extra_hosts:
-      - "elmo:${ELMO_IP}"  # Map hostname to IP
+      - OLLAMA_REQUEST_TIMEOUT=300
     volumes:
       - ./src:/app/src
       - ./tests:/app/tests
-    networks:
-      - jira-net
+    command: ["python", "src/main.py"]
+
+  # Optional: Add redis for rate limiting later
+  # redis:
+  #   image: redis:alpine
+  #   ports:
+  #     - "6379:6379"
 
 networks:
-  jira-net:
+  default:
+    name: jira-agent-net
     driver: bridge
-    external: true

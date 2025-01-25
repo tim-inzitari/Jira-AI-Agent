@@ -42,3 +42,9 @@ def agent(jira_client, ollama_client):
     """Pre-configured JiraAgent instance"""
     from src.main import JiraAgent
     return JiraAgent()
+
+@pytest.fixture
+def agent(jira_client, ollama_client):
+    """Pre-configured JiraAgent instance with dry-run"""
+    from src.main import JiraAgent
+    return JiraAgent(dry_run=True)  # Enable dry-run for tests

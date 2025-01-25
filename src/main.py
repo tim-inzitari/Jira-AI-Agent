@@ -1,29 +1,28 @@
 import os
 import json
 import re
+import logging
 import ollama
 from jira import JIRA
 from dotenv import load_dotenv
-from .schemas import validate_action
+from src.schemas import validate_action
 
 load_dotenv()
 
-DEEPSEEK_SYSTEM_PROMPT = """<think>
-You are a JIRA assistant. Structure responses as:
-1. XML-style reasoning within <think> tags
-2. Executable JSON command within <answer> tags
-
-Response Template:
+DEEPSEEK_SYSTEM_PROMPT = """Return ONLY JSON with these exact fields:
 {
-  "reasoning": "<think>[Your analysis steps]</think>",
-  "answer": "<answer>{\\"action\\":\\"create_issue\\",\\"project\\":\\"PROJ\\",\\"summary\\":\\"Task Name\\"}</answer>"
-}
-</think>"""
+  "action": "create_issue",
+  "project": "TEST",  // Must be uppercase
+  "summary": "Task summary here"  // 5-255 characters
+}"""
 
 class JiraAgent:
-    def __init__(self):
+    def __init__(self, dry_run: bool = False):
+        self.dry_run = dry_run
         self._init_jira()
         self._init_llm()
+        self.logger = logging.getLogger(__name__)
+        logging.basicConfig(level=logging.INFO)
 
     def _init_jira(self):
         """Initialize JIRA connection with validation"""
@@ -35,7 +34,6 @@ class JiraAgent:
                     os.getenv('JIRA_TOKEN')
                 )
             )
-            # Verify connection
             _ = self.jira.projects()
         except Exception as e:
             raise ConnectionError(f"JIRA connection failed: {str(e)}")
@@ -45,11 +43,6 @@ class JiraAgent:
         self.llm = ollama.Client(host=os.getenv('OLLAMA_HOST'))
         try:
             models = self.llm.list()
-            
-            # Debug: Print available models
-            print("Available models:", [m["model"] for m in models["models"]])
-            
-            # Case-insensitive check
             if not any(m["model"].lower() == "deepseek-r1:14b" for m in models["models"]):
                 raise ValueError("deepseek-r1:14b model not available")
         except Exception as e:
@@ -57,8 +50,10 @@ class JiraAgent:
 
     def process_command(self, command: str) -> str:
         """Process user command with validation pipeline"""
+        if self._is_dangerous_command(command):
+            return "Blocked: Command contains restricted keywords"
+            
         try:
-            # Get LLM response
             response = self.llm.chat(
                 model='deepseek-r1:14b',
                 messages=[
@@ -67,77 +62,76 @@ class JiraAgent:
                 ]
             )
             
-            # Parse and validate
             response_data = self._parse_response(response)
             action = self._extract_action(response_data)
-            
-            # Execute and return
             return self._execute_action(action)
             
-        except json.JSONDecodeError:
-            return "Error: Invalid JSON response format"
+        except json.JSONDecodeError as jde:
+            return f"Error: Invalid JSON format - {str(jde)}"
         except ValueError as ve:
             return f"Validation Error: {str(ve)}"
+        except KeyError as ke:
+            return f"Configuration Error: {str(ke)}"
         except Exception as e:
+            self.logger.error(f"System Error: {str(e)}", exc_info=True)
             return f"System Error: {str(e)}"
+
+    def _is_dangerous_command(self, command: str) -> bool:
+        """Check for potentially dangerous operations"""
+        BLACKLISTED_KEYWORDS = ['delete', 'drop', 'admin', 'password', 'token']
+        return any(kw in command.lower() for kw in BLACKLISTED_KEYWORDS)
 
     def _parse_response(self, response: dict) -> dict:
         """Parse and validate response structure"""
         try:
-            response_data = json.loads(response['message']['content'])
+            content = response['message']['content']
             
-            # Debug: Print raw response
-            print("Raw response:", response['message']['content'])
+            # Extract JSON from any formatting wrappers
+            json_match = re.search(r'{.*}', content, re.DOTALL)
+            if not json_match:
+                raise ValueError("No JSON found in response")
+                
+            return json.loads(json_match.group())
             
-            # Validate required fields
-            required_keys = ['reasoning', 'answer']
-            if not all(key in response_data for key in required_keys):
-                raise ValueError("Missing required response fields")
-                
-            # Validate XML tags
-            if not re.search(r'<answer>.*</answer>', response_data['answer']):
-                raise ValueError("Missing answer XML tags")
-                
-            return response_data
         except json.JSONDecodeError:
             raise ValueError("Invalid JSON structure in LLM response")
 
     def _extract_action(self, response_data: dict) -> dict:
-        """Extract and validate action from answer tags"""
-        answer_content = re.search(
-            r'<answer>(.*?)</answer>',
-            response_data['answer'],
-            re.DOTALL
-        ).group(1)
-        
-        # Clean and parse JSON
+        """Extract and validate action"""
         try:
-            return json.loads(
-                answer_content
-                .replace("'", '"')  # Handle single quotes
-                .replace('\n', '')  # Remove newlines
-            )
-        except json.JSONDecodeError:
-            raise ValueError("Invalid JSON in answer content")
+            # Directly use the parsed JSON
+            return {
+                "action": response_data["action"],
+                "project": response_data["project"].upper(),
+                "summary": response_data["summary"]
+            }
+        except KeyError as e:
+            raise ValueError(f"Missing required field: {str(e)}")
 
     def _execute_action(self, action: dict) -> str:
         """Execute validated JIRA action"""
-        validate_action(action)  # Add this line
-        
+        try:
+            validate_action(action)
+        except ValueError as ve:
+            self.logger.error(f"Action Validation Failed: {action}")
+            raise ve
+            
         if action['action'] == 'create_issue':
             return self._create_issue(
                 project=action['project'],
                 summary=action['summary'],
                 description=action.get('description', '')
             )
-        
+            
         raise ValueError(f"Unsupported action: {action['action']}")
 
     def _create_issue(self, project: str, summary: str, description: str) -> str:
         """Create JIRA issue with validation"""
-        # Verify project exists
         if not any(p.key == project for p in self.jira.projects()):
             raise ValueError(f"Project {project} not found")
+            
+        if self.dry_run:
+            return f"[DRY RUN] Would create issue: {project}-{summary}"
             
         issue = self.jira.create_issue(
             project=project,

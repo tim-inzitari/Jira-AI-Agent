@@ -1,4 +1,3 @@
-# src/schemas.py
 from jsonschema import validate, ValidationError
 
 ACTION_SCHEMA = {
@@ -6,7 +5,7 @@ ACTION_SCHEMA = {
     "properties": {
         "action": {
             "type": "string", 
-            "enum": ["create_issue", "find_issues"]
+            "enum": ["create_issue"]
         },
         "project": {
             "type": "string",
@@ -14,14 +13,23 @@ ACTION_SCHEMA = {
         },
         "summary": {
             "type": "string", 
-            "minLength": 5
+            "minLength": 5,
+            "maxLength": 255
+        },
+        "description": {
+            "type": "string",
+            "maxLength": 2000
         }
     },
-    "required": ["action", "project", "summary"]
+    "required": ["action", "project", "summary"],
+    "additionalProperties": False
 }
 
 def validate_action(action: dict):
     try:
         validate(instance=action, schema=ACTION_SCHEMA)
     except ValidationError as e:
-        raise ValueError(f"Invalid action format: {e.message}")
+        # Add detailed error message
+        error_path = ".".join(str(v) for v in e.absolute_path)
+        error_msg = f"Validation failed for field '{error_path}': {e.message}"
+        raise ValueError(error_msg) from None
