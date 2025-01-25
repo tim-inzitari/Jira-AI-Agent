@@ -4,6 +4,7 @@ import re
 import ollama
 from jira import JIRA
 from dotenv import load_dotenv
+from .schemas import validate_action
 
 load_dotenv()
 
@@ -121,17 +122,15 @@ class JiraAgent:
 
     def _execute_action(self, action: dict) -> str:
         """Execute validated JIRA action"""
-        required_keys = ['action', 'project', 'summary']
-        if not all(key in action for key in required_keys):
-            raise ValueError("Missing required action parameters")
-            
+        validate_action(action)  # Add this line
+        
         if action['action'] == 'create_issue':
             return self._create_issue(
                 project=action['project'],
                 summary=action['summary'],
                 description=action.get('description', '')
             )
-            
+        
         raise ValueError(f"Unsupported action: {action['action']}")
 
     def _create_issue(self, project: str, summary: str, description: str) -> str:

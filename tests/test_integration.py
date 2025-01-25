@@ -9,9 +9,10 @@ GOOD_RESPONSE = json.dumps({
     "answer": "<answer>{'action':'create_issue','project':'TEST','summary':'Integration Test'}</answer>"
 })
 
+
 BAD_RESPONSE = json.dumps({
     "reasoning": "<think>Invalid format</think>",
-    "answer": "<answer>{'wrong':'format'}</answer>"
+    "answer": "<answer>{'project':'TEST','summary':'Bad'}</answer>"  # Missing action
 })
 
 INVALID_XML_RESPONSE = json.dumps({
@@ -71,7 +72,7 @@ class TestJiraIntegration:
             agent = JiraAgent()
             result = agent.process_command("Bad command")
             
-            assert "Missing required action parameters" in result
+            assert "Invalid action format: 'action' is a required property" in result
 
     def test_xml_parsing_failure(self):
         """Test missing XML tags"""
