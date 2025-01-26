@@ -25,9 +25,9 @@ fi
 docker-compose -f "$COMPOSE_FILE" down --remove-orphans
 
 # --- Run Tests ---
-docker network create jira-net || true
+docker network create jira-agent-net || true
 docker-compose -f "$COMPOSE_FILE" build
-docker-compose -f "$COMPOSE_FILE" run --rm jira-agent pytest -v tests/
+docker-compose -f "$COMPOSE_FILE" run --rm cli pytest -v tests/
 
 # --- Cleanup ---
 TEST_EXIT_CODE=$?

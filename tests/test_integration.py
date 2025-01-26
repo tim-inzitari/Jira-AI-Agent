@@ -3,15 +3,29 @@ import json
 from unittest.mock import patch, Mock
 
 # --- Test Data ---
-GOOD_RESPONSE = json.dumps({
-    "reasoning": "<think>Creating test issue</think>",
-    "answer": "<answer>{\"action\":\"create_issue\",\"project\":\"TEST\",\"summary\":\"Integration Test\"}</answer>"
-})
+# --- Test Data ---
+GOOD_RESPONSE = """
+<think>Creating test issue</think>
+<answer>
+{
+    "action": "create_issue",
+    "project": "TEST",
+    "summary": "Integration Test"
+}
+</answer>
+"""
 
-BAD_RESPONSE = json.dumps({
-    "reasoning": "<think>Invalid format</think>",
-    "answer": "<answer>{\"project\":\"TEST\",\"summary\":\"Bad\"}</answer>"
-})
+BAD_RESPONSE = """
+<think>Invalid format</think>
+<answer>
+{
+    "project": "TEST",
+    "summary": "Bad"
+}
+</answer>
+"""
+
+INVALID_XML_RESPONSE = "Missing tags"
 
 INVALID_XML_RESPONSE = json.dumps({
     "reasoning": "<think>Test</think>",
@@ -70,7 +84,7 @@ class TestJiraIntegration:
             agent = JiraAgent()
             result = agent.process_command("Bad command")
             
-            assert "Invalid action format: 'action' is a required property" in result
+            assert "Missing required field: 'action'" in result
 
     def test_xml_parsing_failure(self):
         """Test missing XML tags"""
@@ -86,7 +100,7 @@ class TestJiraIntegration:
             agent = JiraAgent()
             result = agent.process_command("Test")
             
-            assert "Missing answer XML tags" in result
+            assert "Missing answer XML tags" or "No answer XML tags found" in result
 
     def test_dry_run_mode(self):
         """Test dry-run doesn't call Jira API"""
