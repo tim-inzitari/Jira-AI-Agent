@@ -86,16 +86,20 @@ class JiraAgent:
         try:
             content = response['message']['content']
             
-            # Extract JSON from any formatting wrappers
-            json_match = re.search(r'{.*}', content, re.DOTALL)
+            # Extract content between <answer> tags
+            answer_match = re.search(r'<answer>(.*?)</answer>', content, re.DOTALL)
+            if not answer_match:
+                raise ValueError("No answer XML tags found")
+                
+            # Extract JSON from answer content
+            json_match = re.search(r'{.*}', answer_match.group(1), re.DOTALL)
             if not json_match:
-                raise ValueError("No JSON found in response")
+                raise ValueError("No JSON found in answer")
                 
             return json.loads(json_match.group())
             
         except json.JSONDecodeError:
             raise ValueError("Invalid JSON structure in LLM response")
-
     def _extract_action(self, response_data: dict) -> dict:
         """Extract and validate action"""
         try:
@@ -125,13 +129,14 @@ class JiraAgent:
             
         raise ValueError(f"Unsupported action: {action['action']}")
 
+
     def _create_issue(self, project: str, summary: str, description: str) -> str:
         """Create JIRA issue with validation"""
         if not any(p.key == project for p in self.jira.projects()):
             raise ValueError(f"Project {project} not found")
             
         if self.dry_run:
-            return f"[DRY RUN] Would create issue: {project}-{summary}"
+            return f"[DRY RUN] Would create issue: {project}-???"
             
         issue = self.jira.create_issue(
             project=project,
