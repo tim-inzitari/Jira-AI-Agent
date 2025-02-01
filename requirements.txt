@@ -2,6 +2,7 @@
 ollama>=0.1.14
 python-dotenv>=1.0.0
 jira>=3.6.0
+openai>=0.27.0
 
 # Testing & Validation
 pytest>=8.2.0

@@ -2,10 +2,10 @@ import os
 import json
 import re
 import logging
-import ollama
 from jira import JIRA
 from dotenv import load_dotenv
 from src.schemas import validate_action
+from src.llm import OllamaProvider, OpenAIProvider
 
 load_dotenv()
 
@@ -43,14 +43,16 @@ class JiraAgent:
             raise ConnectionError(f"JIRA connection failed: {str(e)}")
         
     def _init_llm(self):
-        """Initialize Ollama client with model check"""
-        self.llm = ollama.Client(host=os.getenv('OLLAMA_HOST'))
-        try:
-            models = self.llm.list()
-            if not any(m["model"].lower() == "deepseek-r1:14b" for m in models["models"]):
-                raise ValueError("deepseek-r1:14b model not available")
-        except Exception as e:
-            raise ConnectionError(f"Ollama connection failed: {str(e)}")
+        """Initialize LLM client based on selected provider"""
+        provider = os.getenv("LLM_PROVIDER", "deepseek").lower()
+        if provider == "openai":
+            self.llm = OpenAIProvider()
+        elif provider == "llama":
+            # Example: use a llama model via Ollama; you can customize the model name as needed.
+            self.llm = OllamaProvider(model_name="llama-model")
+        else:
+            # Default: use deepseek-r1 via Ollama
+            self.llm = OllamaProvider(model_name="deepseek-r1:14b")
 
     def process_command(self, command: str) -> str:
         """Process user command with validation pipeline"""
@@ -58,13 +60,10 @@ class JiraAgent:
             return "Blocked: Command contains restricted keywords"
             
         try:
-            response = self.llm.chat(
-                model='deepseek-r1:14b',
-                messages=[
-                    {"role": "system", "content": DEEPSEEK_SYSTEM_PROMPT},
-                    {"role": "user", "content": command}
-                ]
-            )
+            response = self.llm.chat([
+                {"role": "system", "content": DEEPSEEK_SYSTEM_PROMPT},
+                {"role": "user", "content": command}
+            ])
             
             response_data = self._parse_response(response)
             actions = self._extract_actions(response_data)
@@ -89,21 +88,16 @@ class JiraAgent:
         """Parse and validate response structure"""
         try:
             content = response['message']['content']
-            
-            # Extract content between <answer> tags
             answer_match = re.search(r'<answer>(.*?)</answer>', content, re.DOTALL)
             if answer_match:
                 json_str = answer_match.group(1)
             else:
-                # Fallback: extract JSON block from entire content
                 json_match = re.search(r'({.*})', content, re.DOTALL)
                 if json_match:
                     json_str = json_match.group(1)
                 else:
                     raise ValueError("No valid JSON found in response")
-                
             return json.loads(json_str)
-            
         except json.JSONDecodeError:
             raise ValueError("Invalid JSON structure in LLM response")
 
@@ -111,7 +105,6 @@ class JiraAgent:
         """Extract and validate actions"""
         try:
             issues = response_data["issues"]
-            # If top-level "action" indicates multiple issues, add the proper action to each issue.
             if "action" in response_data and response_data["action"] == "create_issues":
                 for issue in issues:
                     issue["action"] = "create_issue"
@@ -132,7 +125,6 @@ class JiraAgent:
                     summary=action['summary'],
                     description=action.get('description', '')
                 )
-                # Provide more detail in the success response
                 results.append(f"Issue created: {action['project']} - {action['summary']} -> {result}")
             else:
                 raise ValueError(f"Unsupported action: {action['action']}")
@@ -142,10 +134,8 @@ class JiraAgent:
         """Create JIRA issue with validation"""
         if not any(p.key == project for p in self.jira.projects()):
             raise ValueError(f"Project {project} not found")
-            
         if self.dry_run:
             return f"[DRY RUN] Would create issue: {project}-???"
-            
         issue = self.jira.create_issue(
             project=project,
             summary=summary,

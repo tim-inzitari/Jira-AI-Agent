@@ -57,7 +57,7 @@ INVALID_XML_RESPONSE = "<think>Missing tags</think>"
 class TestJiraIntegration:
     def test_valid_command(self):
         """Test successful command processing with single issue"""
-        with patch('src.main.ollama.Client') as mock_ollama, \
+        with patch('src.llm.ollama.Client') as mock_ollama, \
              patch('src.main.JIRA') as mock_jira:
             # Mock Jira projects
             mock_project = Mock()
@@ -91,7 +91,7 @@ class TestJiraIntegration:
     
     def test_invalid_action_format(self):
         """Test malformed LLM response"""
-        with patch('src.main.ollama.Client') as mock_ollama:
+        with patch('src.llm.ollama.Client') as mock_ollama:
             mock_ollama.return_value.list.return_value = {
                 'models': [{'model': 'deepseek-r1:14b'}]
             }
@@ -108,7 +108,7 @@ class TestJiraIntegration:
     
     def test_xml_parsing_failure(self):
         """Test missing XML tags"""
-        with patch('src.main.ollama.Client') as mock_ollama:
+        with patch('src.llm.ollama.Client') as mock_ollama:
             mock_ollama.return_value.list.return_value = {
                 'models': [{'model': 'deepseek-r1:14b'}]
             }
@@ -123,7 +123,7 @@ class TestJiraIntegration:
     
     def test_dry_run_mode(self):
         """Test dry-run doesn't call Jira API for single issue"""
-        with patch('src.main.ollama.Client') as mock_ollama, \
+        with patch('src.llm.ollama.Client') as mock_ollama, \
              patch('src.main.JIRA') as mock_jira:
             mock_project = Mock()
             mock_project.key = 'TEST'
@@ -151,7 +151,7 @@ class TestJiraIntegration:
     
     def test_valid_multiple_commands(self):
         """Test successful processing of multiple commands"""
-        with patch('src.main.ollama.Client') as mock_ollama, \
+        with patch('src.llm.ollama.Client') as mock_ollama, \
              patch('src.main.JIRA') as mock_jira:
             mock_project = Mock()
             mock_project.key = 'TEST'
@@ -180,7 +180,7 @@ class TestJiraIntegration:
     
     def test_invalid_multiple_action_format(self):
         """Test malformed LLM response for multiple actions"""
-        with patch('src.main.ollama.Client') as mock_ollama:
+        with patch('src.llm.ollama.Client') as mock_ollama:
             mock_ollama.return_value.list.return_value = {
                 'models': [{'model': 'deepseek-r1:14b'}]
             }
@@ -195,7 +195,7 @@ class TestJiraIntegration:
     
     def test_dry_run_mode_multiple(self):
         """Test dry-run doesn't call Jira API for multiple issues"""
-        with patch('src.main.ollama.Client') as mock_ollama, \
+        with patch('src.llm.ollama.Client') as mock_ollama, \
              patch('src.main.JIRA') as mock_jira:
             mock_project = Mock()
             mock_project.key = 'TEST'
