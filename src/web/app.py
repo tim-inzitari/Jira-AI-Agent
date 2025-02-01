@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, Request, Form
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -10,8 +11,9 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-# Initialize Jira Agent
-agent = JiraAgent()
+# Convert DRY_RUN env to boolean
+dry_run_env = os.getenv("DRY_RUN", "false").strip().lower() == "true"
+agent = JiraAgent(dry_run=dry_run_env)
 
 @app.get("/")
 async def root(request: Request):

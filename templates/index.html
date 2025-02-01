@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jira AI Agent</title>
-    <script src="https://unpkg.com/htmx.org"></script>
+    <script src="https://unpkg.com/htmx.org@1.6.1"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="/static/styles.css">
 </head>
@@ -33,22 +35,46 @@
 
     <script>
         function showProcessing() {
-            const responseDiv = document.getElementById('response');
-            responseDiv.innerHTML = '';
-            
             const processingMsg = document.getElementById('processing-message');
             processingMsg.removeAttribute('hidden');
         }
+
+        htmx.on('htmx:beforeRequest', function(evt) {
+            // Clear the response element and show the processing message
+            document.getElementById('response').innerHTML = '';
+            showProcessing();
+        });
 
         htmx.on('htmx:afterRequest', function(evt) {
             const processingMsg = document.getElementById('processing-message');
             processingMsg.setAttribute('hidden', 'true');
 
-            // Auto-dismiss success messages after 5 seconds
             if (evt.detail.successful) {
-                setTimeout(() => {
-                    document.getElementById('response').innerHTML = '';
-                }, 5000);
+                const responseDiv = document.getElementById('response');
+
+                // Parse the server JSON response to create a friendlier display
+                let responseData;
+                try {
+                    responseData = JSON.parse(evt.detail.xhr.responseText);
+                } catch (e) {
+                    responseDiv.innerHTML = '<div class="status error"><i class="fa fa-exclamation-triangle"></i> Invalid JSON response</div>';
+                    return;
+                }
+
+                if (responseData.success) {
+                    // Separate each line into a list item or display as-is
+                    const lines = responseData.result.split('\n');
+                    let outputHtml = `<div class="status success"><i class="fa fa-check"></i><ul>`;
+                    lines.forEach(line => {
+                        if (line.trim()) {
+                            outputHtml += `<li>${line}</li>`;
+                        }
+                    });
+                    outputHtml += `</ul></div>`;
+                    responseDiv.innerHTML = outputHtml;
+                } else {
+                    responseDiv.innerHTML = `<div class="status error"><i class="fa fa-exclamation-triangle"></i> ${responseData.error || 'Unknown error occurred'}</div>`;
+                }
             }
         });
     </script>

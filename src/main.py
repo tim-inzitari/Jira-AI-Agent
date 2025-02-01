@@ -92,15 +92,17 @@ class JiraAgent:
             
             # Extract content between <answer> tags
             answer_match = re.search(r'<answer>(.*?)</answer>', content, re.DOTALL)
-            if not answer_match:
-                raise ValueError("No answer XML tags found")
+            if answer_match:
+                json_str = answer_match.group(1)
+            else:
+                # Fallback: extract JSON block from entire content
+                json_match = re.search(r'({.*})', content, re.DOTALL)
+                if json_match:
+                    json_str = json_match.group(1)
+                else:
+                    raise ValueError("No valid JSON found in response")
                 
-            # Extract JSON from answer content
-            json_match = re.search(r'{.*}', answer_match.group(1), re.DOTALL)
-            if not json_match:
-                raise ValueError("No JSON found in answer")
-                
-            return json.loads(json_match.group())
+            return json.loads(json_str)
             
         except json.JSONDecodeError:
             raise ValueError("Invalid JSON structure in LLM response")
@@ -130,7 +132,8 @@ class JiraAgent:
                     summary=action['summary'],
                     description=action.get('description', '')
                 )
-                results.append(result)
+                # Provide more detail in the success response
+                results.append(f"Issue created: {action['project']} - {action['summary']} -> {result}")
             else:
                 raise ValueError(f"Unsupported action: {action['action']}")
         return "\n".join(results)

@@ -119,7 +119,7 @@ class TestJiraIntegration:
             from src.main import JiraAgent
             agent = JiraAgent()
             result = agent.process_command("Test")
-            assert "No answer XML tags found" in result
+            assert 'Validation Error' in result
     
     def test_dry_run_mode(self):
         """Test dry-run doesn't call Jira API for single issue"""

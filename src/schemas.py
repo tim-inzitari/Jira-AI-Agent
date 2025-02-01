@@ -22,7 +22,7 @@ ACTION_SCHEMA = {
         }
     },
     "required": ["action", "project", "summary"],
-    "additionalProperties": False
+    "additionalProperties": True
 }
 
 def validate_action(action: dict):
