@@ -54,4 +54,4 @@ def agent(jira_client, ollama_client):
 def set_openai_env(monkeypatch):
     # Ensure that a dummy API key and model are set for tests that instantiate OpenAIProvider.
     monkeypatch.setenv("OPENAI_API_KEY", "dummy-api-key")
-    monkeypatch.setenv("OPENAI_MODEL", "dummy-model")
+    monkeypatch.setenv("OPENAI_MODEL", "gpt-3.5-turbo")

@@ -1,10 +1,6 @@
 import os
 import ollama
 import openai
-from openai import OpenAI
-
-# Remove the global client instance so that API key is set per provider instance
-# client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 class BaseLLMProvider:
     def chat(self, messages: list) -> dict:
@@ -33,6 +29,17 @@ class OpenAIProvider(BaseLLMProvider):
         openai.api_key = api_key
 
     def chat(self, messages: list) -> dict:
+        system_prompt = """Return ONLY JSON with these exact fields:
+        {
+          "action": "create_issues",
+          "issues": [
+            {
+              "project": "TEST",  // Must be uppercase
+              "summary": "Task summary here"  // 5-255 characters
+            }
+          ]
+        }"""
+        messages.insert(0, {"role": "system", "content": system_prompt})
         completion = openai.ChatCompletion.create(
             model=os.getenv("OPENAI_MODEL"),
             messages=messages,
