@@ -1,6 +1,7 @@
 import os
 import ollama
 import openai
+from openai import OpenAI
 
 class BaseLLMProvider:
     def chat(self, messages: list) -> dict:
@@ -26,7 +27,7 @@ class OpenAIProvider(BaseLLMProvider):
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             raise ValueError("OPENAI_API_KEY must be set for OpenAI API")
-        openai.api_key = api_key
+        self.client = OpenAI(api_key=api_key)
 
     def chat(self, messages: list) -> dict:
         system_prompt = """Return ONLY JSON with these exact fields:
@@ -40,11 +41,11 @@ class OpenAIProvider(BaseLLMProvider):
           ]
         }"""
         messages.insert(0, {"role": "system", "content": system_prompt})
-        completion = openai.ChatCompletion.create(
+        response = self.client.chat.completions.create(
             model=os.getenv("OPENAI_MODEL"),
             messages=messages,
             temperature=0
         )
-        content = completion.choices[0].message.content
+        content = response.choices[0].message.content
         wrapped_content = f"<answer>{content}</answer>"
         return {'message': {'content': wrapped_content}}

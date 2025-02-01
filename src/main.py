@@ -48,10 +48,8 @@ class JiraAgent:
         if provider == "openai":
             self.llm = OpenAIProvider()
         elif provider == "llama":
-            # Example: use a llama model via Ollama; you can customize the model name as needed.
             self.llm = OllamaProvider(model_name="llama-model")
         else:
-            # Default: use deepseek-r1 via Ollama
             self.llm = OllamaProvider(model_name="deepseek-r1:14b")
 
     def process_command(self, command: str) -> str:
