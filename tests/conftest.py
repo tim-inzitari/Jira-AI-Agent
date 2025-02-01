@@ -37,6 +37,7 @@ def jira_client():
         return client
     except Exception as e:
         pytest.skip(f"Jira connection failed: {str(e)}")
+
 @pytest.fixture
 def agent(jira_client, ollama_client):
     """Pre-configured JiraAgent instance"""
@@ -48,3 +49,9 @@ def agent(jira_client, ollama_client):
     """Pre-configured JiraAgent instance with dry-run"""
     from src.main import JiraAgent
     return JiraAgent(dry_run=True)  # Enable dry-run for tests
+
+@pytest.fixture(autouse=True)
+def set_openai_env(monkeypatch):
+    # Ensure that a dummy API key and model are set for tests that instantiate OpenAIProvider.
+    monkeypatch.setenv("OPENAI_API_KEY", "dummy-api-key")
+    monkeypatch.setenv("OPENAI_MODEL", "dummy-model")
