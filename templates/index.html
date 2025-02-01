@@ -13,15 +13,16 @@
         <h1>Jira AI Agent 🤖</h1>
         
         <!-- Command Form -->
-        <form hx-post="/command" 
-              hx-target="#response" 
-              hx-swap="innerHTML"
-              onsubmit="showProcessing()">
-            <input type="text" 
-                   name="command" 
-                   placeholder="Create task in PROJECT: Update documentation..."
-                   required>
-            <button type="submit">Execute</button>
+        <form hx-post="/command" hx-trigger="submit" style="margin-bottom: 1rem;">
+            <textarea 
+                name="command" 
+                rows="4" 
+                style="width: 100%; padding: 0.5rem; border: 1px solid #ccc;" 
+                placeholder="Type your command...">
+            </textarea>
+            <button type="submit" style="margin-top: 0.5rem;">
+                Submit
+            </button>
         </form>
 
         <!-- Status Messages -->
