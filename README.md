@@ -1,66 +1,102 @@
-# Jira AI Agent 🤖📋
+# Jira AI Agent 🤖
 
-An AI-powered interface for Jira task management via natural language commands.
+Natural language interface for Jira task management, powered by AI.
 
-[![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED?logo=docker)]
-[![Jira](https://img.shields.io/badge/Jira-Integrated-0052CC?logo=jira)]
-[![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi)]
+[![Tests](https://github.com/YOUR_USER/jira-ai-agent/actions/workflows/tests.yml/badge.svg)](https://github.com/YOUR_USER/jira-ai-agent/actions)
+[![Docker](https://img.shields.io/badge/docker-#230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
+[![Jira](https://img.shields.io/badge/jira-#230A0FFF.svg?style=flat&logo=jira&logoColor=white)](https://www.atlassian.com/software/jira)
+[![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 
-# Features
-- Web interface (FastAPI + HTMX)
-- CLI version for terminal use
-- Natural language processing via Ollama
-- Jira API integration
-- Safety validation layers
-- Dry-run testing mode
+## Features
 
-# Quick Start
-1. Clone repo:
+🤖 Natural language task creation
+🔒 Safety validation layers  
+🔄 Multiple LLM support (OpenAI, Ollama)
+🌐 Web UI + CLI interfaces
+✨ Real-time HTMX updates
+🧪 Test coverage & mocking
+
+## Installation
+
+1. Clone and setup:
+```bash
 git clone https://github.com/YOUR_USER/jira-ai-agent.git
 cd jira-ai-agent
+cp .env.example .env
+```
 
 2. Configure environment:
-cp .env.example .env
-nano .env  # Edit credentials
-
-3. Start services:
-docker-compose up --build web
-
-# Web Interface
-Access at: http://localhost:8000
-- Type commands in textbox
-- Real-time responses
-- Error highlighting
-
-# CLI Usage
-docker-compose run --rm cli
-Example: "Create task in TEST: Update docs"
-
-## Configuration (.env)
-
-Ensure that your .env file includes the new variables:
-
-  • LLM_PROVIDER – Set to one of: deepseek, openai, or llama  
-  • OPENAI_API_KEY – Provide your OpenAI API key when using the OpenAI provider
-
-Example:
-
-OLLAMA_HOST=http://YOUR_OLLAMA_IP:11434
+```ini
+# Jira Config
 JIRA_SERVER=https://your-domain.atlassian.net
-JIRA_USER=your@email.com
-JIRA_TOKEN=your_api_token
-DRY_RUN=false
+JIRA_USER=your-email@domain.com 
+JIRA_TOKEN=your-api-token
 
-# Troubleshooting
-- Clean rebuild: docker-compose down --remove-orphans && docker-compose build --no-cache
-- Test connections: curl $OLLAMA_HOST/api/tags
-- Check logs: docker-compose logs web
+# LLM Provider
+LLM_PROVIDER=openai  # or deepseek, llama
+OPENAI_API_KEY=your-api-key
+OPENAI_MODEL=gpt-3.5-turbo
+```
 
-# Roadmap
-- [x] Web interface
-- [x] Multi-step commands
-- [ ] User authentication
-- [ ] Slack integration
+## Usage
 
-# License
-MIT License - Use at your own risk
+### Docker (Recommended)
+```bash
+# Start all services
+docker compose up --build
+
+# CLI only
+docker compose run cli
+```
+
+Web UI: http://localhost:8000
+
+### Local Development
+```bash
+# Setup
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Run
+python src/web.py  # Web UI
+python src/cli.py  # CLI
+```
+
+## Testing
+
+Run test suite:
+```bash
+./scripts/run-tests.sh
+```
+
+Configure test env:
+```bash
+# .env.test
+JIRA_SERVER=http://mock-jira
+JIRA_USER=test-user 
+JIRA_TOKEN=test-token
+LLM_PROVIDER=openai
+OPENAI_API_KEY=test-api-key
+```
+
+Run specific tests:
+```bash
+pytest tests/test_integration.py::TestJiraIntegration::test_valid_command
+pytest --cov=src tests/
+```
+
+### Mock Configuration
+Test mocks configured in 
+
+conftest.py
+
+:
+- OpenAI API responses
+- Jira API calls
+- Ollama API endpoints
+
+## License
+
+MIT License - See LICENSE file for details
+``` 
