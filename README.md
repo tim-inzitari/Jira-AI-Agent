@@ -50,7 +50,7 @@ DRY_RUN=false
 
 # Roadmap
 - [x] Web interface
-- [ ] Multi-step commands
+- [x] Multi-step commands
 - [ ] User authentication
 - [ ] Slack integration
 
