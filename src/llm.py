@@ -29,7 +29,7 @@ class OpenAIProvider(BaseLLMProvider):
     
     def chat(self, messages: list) -> dict:
         completion = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model=os.getenv("OPENAI_MODEL"),
             messages=messages,
             temperature=0
         )
