@@ -11,9 +11,13 @@ load_dotenv()
 
 DEEPSEEK_SYSTEM_PROMPT = """Return ONLY JSON with these exact fields:
 {
-  "action": "create_issue",
-  "project": "TEST",  // Must be uppercase
-  "summary": "Task summary here"  // 5-255 characters
+  "action": "create_issues",
+  "issues": [
+    {
+      "project": "TEST",  // Must be uppercase
+      "summary": "Task summary here"  // 5-255 characters
+    }
+  ]
 }"""
 
 class JiraAgent:
@@ -63,8 +67,8 @@ class JiraAgent:
             )
             
             response_data = self._parse_response(response)
-            action = self._extract_action(response_data)
-            return self._execute_action(action)
+            actions = self._extract_actions(response_data)
+            return self._execute_actions(actions)
             
         except json.JSONDecodeError as jde:
             return f"Error: Invalid JSON format - {str(jde)}"
@@ -100,35 +104,36 @@ class JiraAgent:
             
         except json.JSONDecodeError:
             raise ValueError("Invalid JSON structure in LLM response")
-    def _extract_action(self, response_data: dict) -> dict:
-        """Extract and validate action"""
+
+    def _extract_actions(self, response_data: dict) -> list:
+        """Extract and validate actions"""
         try:
-            # Directly use the parsed JSON
-            return {
-                "action": response_data["action"],
-                "project": response_data["project"].upper(),
-                "summary": response_data["summary"]
-            }
+            issues = response_data["issues"]
+            # If top-level "action" indicates multiple issues, add the proper action to each issue.
+            if "action" in response_data and response_data["action"] == "create_issues":
+                for issue in issues:
+                    issue["action"] = "create_issue"
+            for action in issues:
+                action["project"] = action["project"].upper()
+                validate_action(action)
+            return issues
         except KeyError as e:
             raise ValueError(f"Missing required field: {str(e)}")
 
-    def _execute_action(self, action: dict) -> str:
-        """Execute validated JIRA action"""
-        try:
-            validate_action(action)
-        except ValueError as ve:
-            self.logger.error(f"Action Validation Failed: {action}")
-            raise ve
-            
-        if action['action'] == 'create_issue':
-            return self._create_issue(
-                project=action['project'],
-                summary=action['summary'],
-                description=action.get('description', '')
-            )
-            
-        raise ValueError(f"Unsupported action: {action['action']}")
-
+    def _execute_actions(self, actions: list) -> str:
+        """Execute validated JIRA actions"""
+        results = []
+        for action in actions:
+            if action['action'] == 'create_issue':
+                result = self._create_issue(
+                    project=action['project'],
+                    summary=action['summary'],
+                    description=action.get('description', '')
+                )
+                results.append(result)
+            else:
+                raise ValueError(f"Unsupported action: {action['action']}")
+        return "\n".join(results)
 
     def _create_issue(self, project: str, summary: str, description: str) -> str:
         """Create JIRA issue with validation"""

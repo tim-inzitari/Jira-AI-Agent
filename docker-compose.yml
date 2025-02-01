@@ -24,4 +24,5 @@ services:
 networks:
   default:
     name: jira-agent-net
+    external: true
     driver: bridge
