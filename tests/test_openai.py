@@ -24,7 +24,7 @@ def test_openai_chat_success():
         ]
         result = provider.chat(messages)
         mock_create.assert_called_once_with(
-            model="gpt-3.5-turbo",
+            model=os.environ.get("OPENAI_MODEL"),
             messages=messages,
             temperature=0
         )
