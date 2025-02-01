@@ -13,14 +13,19 @@
         <h1>Jira AI Agent 🤖</h1>
         
         <!-- Command Form -->
-        <form hx-post="/command" hx-trigger="submit" style="margin-bottom: 1rem;">
-            <textarea 
-                name="command" 
-                rows="4" 
-                style="width: 100%; padding: 0.5rem; border: 1px solid #ccc;" 
-                placeholder="Type your command...">
-            </textarea>
-            <button type="submit" style="margin-top: 0.5rem;">
+        <form 
+            hx-post="/command" 
+            hx-trigger="submit" 
+            hx-swap="none"
+            style="margin-bottom: 1rem;"
+        >
+            <textarea
+                name="command"
+                rows="4"
+                style="width:100%; padding:0.5rem; border:1px solid #ccc;"
+                placeholder="Type your command..."
+            ></textarea>
+            <button type="submit" style="margin-top:0.5rem;">
                 Submit
             </button>
         </form>
@@ -31,50 +36,47 @@
             <span>Processing your request...</span>
         </div>
         
+        <!-- Response goes here, remains on page for next request -->
         <div id="response"></div>
     </div>
 
     <script>
         function showProcessing() {
-            const processingMsg = document.getElementById('processing-message');
-            processingMsg.removeAttribute('hidden');
+            document.getElementById('processing-message').removeAttribute('hidden');
         }
 
         htmx.on('htmx:beforeRequest', function(evt) {
-            // Clear the response element and show the processing message
-            document.getElementById('response').innerHTML = '';
             showProcessing();
         });
 
         htmx.on('htmx:afterRequest', function(evt) {
-            const processingMsg = document.getElementById('processing-message');
-            processingMsg.setAttribute('hidden', 'true');
-
+            // Hide "Processing" indicator
+            document.getElementById('processing-message').setAttribute('hidden', 'true');
+            
+            // Render the JSON response with user-friendly formatting
             if (evt.detail.successful) {
-                const responseDiv = document.getElementById('response');
-
-                // Parse the server JSON response to create a friendlier display
-                let responseData;
+                let raw = evt.detail.xhr.responseText;
+                let responseDiv = document.getElementById('response');
+                
                 try {
-                    responseData = JSON.parse(evt.detail.xhr.responseText);
+                    let data = JSON.parse(raw);
+                    if (data.success) {
+                        // Split lines in data.result into a list
+                        let lines = data.result.split('\n');
+                        let output = `<div class="status success"><ul>`;
+                        lines.forEach(line => {
+                            if (line.trim()) {
+                                output += `<li>${line}</li>`;
+                            }
+                        });
+                        output += `</ul></div>`;
+                        responseDiv.innerHTML = output;
+                    } else {
+                        responseDiv.innerHTML = `<div class="status error">${data.error || "Unknown error"}</div>`;
+                    }
                 } catch (e) {
-                    responseDiv.innerHTML = '<div class="status error"><i class="fa fa-exclamation-triangle"></i> Invalid JSON response</div>';
-                    return;
-                }
-
-                if (responseData.success) {
-                    // Separate each line into a list item or display as-is
-                    const lines = responseData.result.split('\n');
-                    let outputHtml = `<div class="status success"><i class="fa fa-check"></i><ul>`;
-                    lines.forEach(line => {
-                        if (line.trim()) {
-                            outputHtml += `<li>${line}</li>`;
-                        }
-                    });
-                    outputHtml += `</ul></div>`;
-                    responseDiv.innerHTML = outputHtml;
-                } else {
-                    responseDiv.innerHTML = `<div class="status error"><i class="fa fa-exclamation-triangle"></i> ${responseData.error || 'Unknown error occurred'}</div>`;
+                    // If not JSON, show raw text
+                    responseDiv.innerHTML = `<div class="status error">Invalid response: ${raw}</div>`;
                 }
             }
         });
