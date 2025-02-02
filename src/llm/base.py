@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, root_validator
 import logging
 from ..config.settings import Settings
 
@@ -11,7 +11,17 @@ class LLMResponse(BaseModel):
     raw_response: Optional[Dict[str, Any]] = None
     model: Optional[str] = None
     usage: Optional[Dict[str, int]] = None
-    
+
+    @root_validator(pre=True)
+    def convert_raw_response(cls, values):
+        raw = values.get("raw_response")
+        if raw is not None and not isinstance(raw, dict):
+            try:
+                values["raw_response"] = raw.__dict__
+            except AttributeError:
+                values["raw_response"] = {"raw": str(raw)}
+        return values
+
 class LLMException(Exception):
     """Base exception for LLM-related errors"""
     pass

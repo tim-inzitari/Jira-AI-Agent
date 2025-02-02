@@ -6,6 +6,7 @@ import logging
 from ..config.settings import Settings
 from ..core.agent import JiraAgent
 from ..core.schemas import CommandResponseSchema
+from .dependencies import get_agent
 
 # Initialize router and logging
 router = APIRouter()
@@ -32,23 +33,14 @@ class ProjectResponse(BaseModel):
     name: str
     description: Optional[str] = None
 
-async def get_agent():
-    """Dependency to get configured JiraAgent instance"""
-    try:
-        settings = Settings()
-        agent = JiraAgent(settings)
-        await agent.validate_connection()
-        return agent
-    except Exception as e:
-        logger.error(f"Failed to initialize agent: {str(e)}")
-        raise HTTPException(status_code=500, detail="Service initialization failed")
-
 @router.post("/command", response_model=CommandResponseSchema)
 async def process_command(
     request: CommandRequest,
     agent: JiraAgent = Depends(get_agent)
 ) -> Dict:
     """Process natural language command"""
+    if not request.command.strip():
+        raise HTTPException(status_code=422, detail="Command cannot be empty")
     logger.info(f"Processing command: {request.command}")
     try:
         result = await agent.process_command(
@@ -72,15 +64,16 @@ async def process_command(
 @router.get("/projects", response_model=List[ProjectResponse])
 async def list_projects(
     agent: JiraAgent = Depends(get_agent)
-) -> List[Dict]:
+) -> List[ProjectResponse]:
     """List available Jira projects"""
     try:
         projects = await agent.get_projects()
+        # Fix: Handle both dict and object responses
         return [
             ProjectResponse(
-                key=p.key,
-                name=p.name,
-                description=p.description
+                key=p["key"] if isinstance(p, dict) else p.key,
+                name=p["name"] if isinstance(p, dict) else p.name,
+                description=p.get("description", "") if isinstance(p, dict) else getattr(p, "description", "")
             ) for p in projects
         ]
     except Exception as e:
@@ -88,25 +81,29 @@ async def list_projects(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/health")
-async def health_check() -> Dict:
+async def health_check(
+    agent: JiraAgent = Depends(get_agent)
+) -> Dict:
     """Health check endpoint"""
+    jira_ok = await agent.check_jira_connection()
+    llm_ok = await agent.check_llm_connection()
+    
+    if not (jira_ok and llm_ok):
+        raise HTTPException(status_code=503, detail="Service unhealthy")
+        
     return {
         "status": "healthy",
-        "version": "1.0.0"
+        "jira": "connected" if jira_ok else "disconnected",
+        "llm": "connected" if llm_ok else "disconnected"
     }
 
 @router.get("/status")
-async def service_status(
-    agent: JiraAgent = Depends(get_agent)
-) -> Dict:
-    """Check service status"""
-    try:
-        jira_status = await agent.check_jira_connection()
-        llm_status = await agent.check_llm_connection()
-        return {
-            "jira": "connected" if jira_status else "disconnected",
-            "llm": "connected" if llm_status else "disconnected"
-        }
-    except Exception as e:
-        logger.error(f"Status check failed: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+async def service_status(agent: JiraAgent = Depends(get_agent)):
+    """Get service status"""
+    jira_ok = await agent.check_jira_connection()
+    llm_ok = await agent.check_llm_connection()
+    return {
+        "status": "operational",
+        "jira": "connected" if jira_ok else "disconnected",
+        "llm": "connected" if llm_ok else "disconnected"
+    }

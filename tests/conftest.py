@@ -7,6 +7,7 @@ from src.config.settings import Settings
 from src.core.agent import JiraAgent
 from src.llm.base import BaseLLMProvider
 from src.web.app import app
+from src.web.dependencies import get_agent
 
 @pytest.fixture
 def settings() -> Settings:
@@ -59,19 +60,27 @@ def mock_llm_provider(mock_llm_response) -> AsyncMock:
     return provider
 
 @pytest.fixture
-def mock_agent(settings, mock_jira_client, mock_llm_provider) -> JiraAgent:
+def mock_agent() -> JiraAgent:
     """Provide mock agent instance"""
-    with patch('src.core.agent.JIRA', return_value=mock_jira_client):
-        agent = JiraAgent(settings)
-        agent.jira = mock_jira_client
-        agent.llm = mock_llm_provider
-        return agent
+    agent = AsyncMock(spec=JiraAgent)
+    agent.check_jira_connection = AsyncMock(return_value=True)
+    agent.check_llm_connection = AsyncMock(return_value=True)
+    # Fix: Return properly structured project data
+    agent.get_projects = AsyncMock(return_value=[
+        {
+            "key": "TEST",
+            "name": "Test Project",
+            "description": "Test Description" 
+        }
+    ])
+    return agent
 
 @pytest.fixture
 def test_client(mock_agent) -> TestClient:
-    """Provide FastAPI test client"""
-    app.dependency_overrides = {}
-    return TestClient(app)
+    """Provide test client with mocked dependencies"""
+    app.dependency_overrides[get_agent] = lambda: mock_agent
+    yield TestClient(app)
+    app.dependency_overrides.clear()  # Cleanup after test
 
 @pytest.fixture
 def mock_http_response() -> Dict[str, Any]:

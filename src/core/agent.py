@@ -144,10 +144,20 @@ class JiraAgent:
         await self.jira.projects()
         return True
 
+    async def check_jira_connection(self) -> bool:
+        """Check Jira connection status"""
+        try:
+            await self.jira.projects()
+            return True
+        except Exception as e:
+            self.logger.error(f"Jira connection check failed: {str(e)}")
+            return False
+
     async def check_llm_connection(self) -> bool:
         """Check LLM connection status"""
         try:
             await self.llm.generate("test")
             return True
-        except Exception:
+        except Exception as e:
+            self.logger.error(f"LLM connection check failed: {str(e)}")
             return False

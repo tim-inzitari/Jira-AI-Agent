@@ -1,5 +1,5 @@
 import logging
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -9,6 +9,7 @@ from ..config.settings import Settings
 from ..core.agent import JiraAgent, JiraError
 from .routes import router
 from ..utils.logging import setup_logging
+from .dependencies import get_agent
 
 def create_app() -> FastAPI:
     """Create and configure FastAPI application"""
@@ -46,17 +47,24 @@ def create_app() -> FastAPI:
     
     # Add health check
     @app.get("/health", tags=["monitoring"])
-    async def health_check():
+    async def health_check(agent: JiraAgent = Depends(get_agent)):
         """Health check endpoint"""
         try:
-            jira_status = await app.agent.check_jira_connection()
-            llm_status = await app.agent.check_llm_connection()
+            jira_status = await agent.check_jira_connection()
+            llm_status = await agent.check_llm_connection()
+            if not (jira_status and llm_status):
+                return JSONResponse(
+                    status_code=503,
+                    content={
+                        "status": "unhealthy",
+                        "jira": "connected" if jira_status else "disconnected",
+                        "llm": "connected" if llm_status else "disconnected"
+                    }
+                )
             return {
                 "status": "healthy",
-                "services": {
-                    "jira": "connected" if jira_status else "disconnected",
-                    "llm": "connected" if llm_status else "disconnected"
-                }
+                "jira": "connected",
+                "llm": "connected"
             }
         except Exception as e:
             logging.error(f"Health check failed: {str(e)}")
@@ -68,6 +76,18 @@ def create_app() -> FastAPI:
                 }
             )
     
+    @app.options("/")
+    async def cors_preflight():
+        """Handle CORS preflight requests"""
+        return JSONResponse(
+            content={},
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+                "Access-Control-Allow-Headers": "*"
+            }
+        )
+        
     return app
 
 # Create application instance

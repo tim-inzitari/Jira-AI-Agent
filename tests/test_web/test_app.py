@@ -18,7 +18,9 @@ class TestApp:
     def test_cors_middleware(self, test_client):
         """Test CORS middleware configuration"""
         response = test_client.options("/")
+        assert response.status_code == 200
         assert response.headers["access-control-allow-origin"] == "*"
+        assert "GET" in response.headers["access-control-allow-methods"]
 
     def test_static_files(self, test_client):
         """Test static files serving"""

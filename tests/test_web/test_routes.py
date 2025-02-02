@@ -7,6 +7,8 @@ from src.core.schemas import CommandRequest
 class TestRoutes:
     async def test_process_command(self, test_client, mock_agent):
         """Test command processing endpoint"""
+        mock_agent.process_command.return_value = [{"status": "success"}]
+        
         response = test_client.post(
             "/api/v1/command",
             json={
