@@ -1,88 +1,89 @@
-import os
 import pytest
-from unittest.mock import Mock, MagicMock
-import ollama
-from jira import JIRA
-from dotenv import load_dotenv
+from typing import Dict, Any
+from unittest.mock import AsyncMock, Mock, patch
+from fastapi.testclient import TestClient
+import os
+from src.config.settings import Settings
+from src.core.agent import JiraAgent
+from src.llm.base import BaseLLMProvider
+from src.web.app import app
 
-load_dotenv()  # Load from project root
-
-# --- Safety Configuration ---
-TEST_PROJECT = "TEST"  # Your test project key
-BLACKLISTED_PROJECTS = ["PROD", "LIVE"]  # Production projects to protect
-
-# --- Test Data ---
 @pytest.fixture
-def mock_llm_responses():
-    """Standard test responses for different LLM providers"""
-    openai_mock = MagicMock()
-    openai_mock.choices = [
-        MagicMock(
-            message=MagicMock(
-                content="""{"action": "create_issues", "issues": [{"project": "TEST", "summary": "Integration Test"}]}"""
-            )
-        )
+def settings() -> Settings:
+    """Provide test settings"""
+    return Settings(
+        OLLAMA_HOSTNAME="test-ollama",
+        OLLAMA_PORT=11434,
+        OLLAMA_HOST="http://test-ollama:11434",
+        JIRA_SERVER="https://tsinzitari.atlassian.net",
+        JIRA_USER="tsinzitari@gmail.com",
+        JIRA_TOKEN=os.environ.get("JIRA_TOKEN"),
+        LLM_PROVIDER="ollama",
+        OPENAI_API_KEY="test-key",
+        DRY_RUN=True,
+        PROTECTED_PROJECTS="PROD,LIVE"
+    )
+
+@pytest.fixture
+def mock_jira_client() -> AsyncMock:
+    """Provide mock Jira client"""
+    client = AsyncMock()
+    client.projects.return_value = [
+        Mock(key="TEST", name="Test Project"),
+        Mock(key="DEV", name="Development")
     ]
+    client.create_issue.return_value = Mock(
+        key="TEST-123",
+        permalink=lambda: "https://test.atlassian.net/browse/TEST-123"
+    )
+    client.myself.return_value = {"name": "test_user"}
+    return client
+
+@pytest.fixture
+def mock_llm_response() -> Dict[str, Any]:
+    """Provide mock LLM response"""
     return {
-        "openai": openai_mock,
-        "deepseek-r1:14b": {
-            "message": {
-                "content": """<answer>{"action": "create_issues", "issues": [{"project": "TEST", "summary": "Integration Test"}]}</answer>"""
-            }
-        }
+        "actions": [{
+            "type": "create_issue",
+            "project": "TEST",
+            "summary": "Test Issue",
+            "description": "Test Description"
+        }]
     }
 
-# --- LLM Provider Configuration ---
-@pytest.fixture(params=["openai", "deepseek-r1:14b", "llama"])
-def llm_provider(request, monkeypatch):
-    """Parametrized fixture for different LLM providers"""
-    provider = request.param
-    monkeypatch.setenv("LLM_PROVIDER", provider)
-    
-    if provider == "openai":
-        monkeypatch.setenv("OPENAI_API_KEY", "test-api-key")
-        monkeypatch.setenv("OPENAI_MODEL", "gpt-3.5-turbo")
-    elif provider == "llama":
-        pytest.skip("Llama model not available")
-    
+@pytest.fixture
+def mock_llm_provider(mock_llm_response) -> AsyncMock:
+    """Provide mock LLM provider"""
+    provider = AsyncMock(spec=BaseLLMProvider)
+    provider.generate.return_value = mock_llm_response
     return provider
 
-# --- Service Client Fixtures ---
-@pytest.fixture(scope="session")
-def ollama_client():
-    """Validated Ollama connection"""
-    try:
-        client = ollama.Client(host=os.getenv("OLLAMA_HOST"))
-        models = client.list()
-        if "deepseek-r1:14b" not in [m["model"] for m in models["models"]]:
-            pytest.skip("deepseek-r1:14b model not available")
-        return client
-    except Exception as e:
-        pytest.skip(f"Ollama connection failed: {str(e)}")
-
-@pytest.fixture(scope="session")
-def jira_client():
-    """Validated Jira connection"""
-    try:
-        client = JIRA(
-            server=os.getenv("JIRA_SERVER"),
-            basic_auth=(os.getenv("JIRA_USER"), os.getenv("JIRA_TOKEN"))
-        )
-        _ = client.projects()
-        return client
-    except Exception as e:
-        pytest.skip(f"Jira connection failed: {str(e)}")
-
-# --- Agent Fixture ---
 @pytest.fixture
-def agent(jira_client, ollama_client):
-    """Pre-configured JiraAgent instance with dry-run"""
-    from src.main import JiraAgent
-    return JiraAgent(dry_run=True)  # Enable dry-run for tests
+def mock_agent(settings, mock_jira_client, mock_llm_provider) -> JiraAgent:
+    """Provide mock agent instance"""
+    with patch('src.core.agent.JIRA', return_value=mock_jira_client):
+        agent = JiraAgent(settings)
+        agent.jira = mock_jira_client
+        agent.llm = mock_llm_provider
+        return agent
 
-# --- Environment Setup ---
+@pytest.fixture
+def test_client(mock_agent) -> TestClient:
+    """Provide FastAPI test client"""
+    app.dependency_overrides = {}
+    return TestClient(app)
+
+@pytest.fixture
+def mock_http_response() -> Dict[str, Any]:
+    """Provide mock HTTP response"""
+    return {
+        "status_code": 200,
+        "content": "Test content",
+        "headers": {"Content-Type": "application/json"}
+    }
+
 @pytest.fixture(autouse=True)
-def set_openai_env(monkeypatch):
-    """Ensure OpenAI environment variables are set for tests"""
-    monkeypatch.setenv("OPENAI_API_KEY", "dummy-api-key")
-    monkeypatch.setenv("OPENAI_MODEL", "gpt-3.5-turbo")
+def setup_logging():
+    """Configure logging for tests"""
+    import logging
+    logging.basicConfig(level=logging.DEBUG)

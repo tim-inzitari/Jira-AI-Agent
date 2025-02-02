@@ -1,16 +1,39 @@
 # Core Dependencies
-ollama>=0.1.14
-python-dotenv>=1.0.0
-jira>=3.6.0
-openai>=1.0.0
+fastapi==0.109.1
+uvicorn==0.27.0
+pydantic==2.6.0
+pydantic-settings==2.1.0  # Add this line
+python-dotenv==1.0.0
 
-# Testing & Validation
-pytest>=8.2.0
-pytest-mock>=3.14.0
-regex>=2023.12.25  # For advanced XML/JSON parsing
-jsonschema>=4.22.0  # For response validation
 
-fastapi>=0.68.0
-uvicorn>=0.15.0
-python-multipart>=0.0.5
-jinja2>=3.0.0
+# API Clients
+openai>=1.32.0
+ollama>=0.1.5
+jira==3.6.0
+aiohttp==3.9.1
+
+# Web Interface
+jinja2==3.1.3
+python-multipart==0.0.7
+
+# Testing
+pytest==8.0.0
+pytest-asyncio==0.23.5
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+pytest-env==1.1.1
+httpx>=0.26.0  # For async HTTP testing
+
+# Validation & Parsing
+pydantic[email]==2.6.0
+jsonschema==4.21.1
+regex==2023.12.25
+
+# Development
+black==24.1.1
+isort==5.13.2
+flake8==7.0.0
+mypy==1.8.0
+
+#Other
+tenacity

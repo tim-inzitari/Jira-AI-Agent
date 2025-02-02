@@ -1,28 +1,30 @@
 version: '3.7'
-
 services:
   web:
     build: .
-    command: uvicorn src.web.app:app --host 0.0.0.0 --port 8000
     ports:
-      - "0.0.0.0:8000:8000"
-    env_file: .env
+      - "8000:8000"
+    env_file:
+      - .env
     volumes:
       - ./src:/app/src
       - ./templates:/app/templates
       - ./static:/app/static
-  cli:
-    build: .
-    command: python src/main.py
-    env_file: .env
-    stdin_open: true  # Enable interactive input
-    tty: true         # Allocate pseudo-TTY
-    volumes:
-      - ./src:/app/src
-      - ./tests:/app/tests
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    environment:
+      - OLLAMA_HOST=http://192.168.1.209:11434  # Replace with your NAS IP
+      - OLLAMA_HOSTNAME=elmo  # Replace with your NAS hostname
+      - PYTHONUNBUFFERED=1
+    networks:
+      - default
 
 networks:
   default:
     name: jira-agent-net
-    external: true
     driver: bridge
+    external: true

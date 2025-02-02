@@ -1,102 +1,107 @@
-# Jira AI Agent 🤖
+# Jira AI Agent
 
-Natural language interface for Jira task management, powered by AI.
-
-[![Tests](https://github.com/YOUR_USER/jira-ai-agent/actions/workflows/tests.yml/badge.svg)](https://github.com/YOUR_USER/jira-ai-agent/actions)
-[![Docker](https://img.shields.io/badge/docker-#230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
-[![Jira](https://img.shields.io/badge/jira-#230A0FFF.svg?style=flat&logo=jira&logoColor=white)](https://www.atlassian.com/software/jira)
-[![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+An AI-powered Jira task management system with Docker deployment
 
 ## Features
+- Natural language processing for Jira commands
+- Docker containerization with monitoring
+- Multiple LLM provider support (OpenAI, Ollama)
+- Prometheus metrics and Grafana dashboards
+- Async API design
+- Built-in security features
 
-🤖 Natural language task creation
-🔒 Safety validation layers  
-🔄 Multiple LLM support (OpenAI, Ollama)
-🌐 Web UI + CLI interfaces
-✨ Real-time HTMX updates
-🧪 Test coverage & mocking
-
-## Installation
-
-1. Clone and setup:
-```bash
-git clone https://github.com/YOUR_USER/jira-ai-agent.git
+## Quick Start
+git clone https://github.com/yourusername/jira-ai-agent.git
 cd jira-ai-agent
 cp .env.example .env
-```
+docker-compose up -d
+# Access at http://localhost:8000
 
-2. Configure environment:
-```ini
-# Jira Config
+## Configuration
+Create .env file:
+
+OLLAMA_HOSTNAME=ollama
+OLLAMA_PORT=11434
+OLLAMA_HOST=http://ollama:11434
+
 JIRA_SERVER=https://your-domain.atlassian.net
-JIRA_USER=your-email@domain.com 
-JIRA_TOKEN=your-api-token
+JIRA_USER=your@email.com
+JIRA_TOKEN=your_api_token
 
-# LLM Provider
-LLM_PROVIDER=openai  # or deepseek, llama
-OPENAI_API_KEY=your-api-key
-OPENAI_MODEL=gpt-3.5-turbo
-```
+LLM_PROVIDER=deepseek  # options: deepseek, openai, llama
+OPENAI_API_KEY=your_key  # if using OpenAI
 
-## Usage
+## Docker Commands
+# Start services
+docker-compose up -d
 
-### Docker (Recommended)
-```bash
-# Start all services
-docker compose up --build
+# View logs
+docker-compose logs -f
 
-# CLI only
-docker compose run cli
-```
+# Shell access
+docker-compose exec web bash
 
-Web UI: http://localhost:8000
+# Run tests
+docker-compose exec web pytest
 
-### Local Development
-```bash
-# Setup
+# Stop services
+docker-compose down
+
+## API Usage
+# Create Jira issue
+curl -X POST http://localhost:8000/api/v1/command \
+  -H "Content-Type: application/json" \
+  -d '{"command": "Create bug ticket for login page"}'
+
+# List projects
+curl http://localhost:8000/api/v1/projects
+
+# Health check
+curl http://localhost:8000/health
+
+## Monitoring
+Prometheus: http://localhost:9090
+Grafana: http://localhost:3000 (admin/admin)
+
+## Development
+# Local setup without Docker
 python -m venv venv
 source venv/bin/activate
-pip install -r requirements.txt
+pip install -e ".[dev]"
+uvicorn src.web.app:app --reload
 
-# Run
-python src/web.py  # Web UI
-python src/cli.py  # CLI
-```
+# Code quality
+black src tests
+isort src tests
+mypy src
 
 ## Testing
+# Run all tests
+pytest
 
-Run test suite:
-```bash
-./scripts/run-tests.sh
-```
+# With coverage
+pytest --cov=src
 
-Configure test env:
-```bash
-# .env.test
-JIRA_SERVER=http://mock-jira
-JIRA_USER=test-user 
-JIRA_TOKEN=test-token
-LLM_PROVIDER=openai
-OPENAI_API_KEY=test-api-key
-```
+# Single test file
+pytest tests/test_core/test_agent.py
 
-Run specific tests:
-```bash
-pytest tests/test_integration.py::TestJiraIntegration::test_valid_command
-pytest --cov=src tests/
-```
+## Project Structure
+jira-ai-agent/
+├── src/              # Source code
+├── tests/            # Test suite
+├── templates/        # HTML templates
+├── static/          # Static assets
+├── Dockerfile       # Container definition
+├── docker-compose.yml # Services orchestration
+├── prometheus.yml   # Metrics config
+├── setup.py        # Package config
+└── requirements.txt # Dependencies
 
-### Mock Configuration
-Test mocks configured in 
-
-conftest.py
-
-:
-- OpenAI API responses
-- Jira API calls
-- Ollama API endpoints
+## Troubleshooting
+1. Check container logs: docker-compose logs
+2. Verify Ollama connection: curl http://ollama:11434/health
+3. Check Jira token: curl -u email:token https://your-domain.atlassian.net/rest/api/2/myself
+4. Monitor resource usage: docker stats
 
 ## License
-
-MIT License - See LICENSE file for details
-``` 
+MIT License - see LICENSE file for details
