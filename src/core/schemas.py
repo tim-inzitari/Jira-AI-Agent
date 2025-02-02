@@ -93,6 +93,11 @@ class CommandResponseSchema(BaseModel):
     actions: Optional[List[Dict[str, Any]]] = None
     errors: Optional[List[str]] = None
 
+class ProjectResponse(BaseModel):
+    key: str
+    name: str
+    description: Optional[str] = ""
+
 def validate_action(action: Dict[str, Any]) -> None:
     """Validate action against schema"""
     try:

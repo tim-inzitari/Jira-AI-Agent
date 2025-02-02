@@ -2,6 +2,7 @@ import logging
 from typing import List, Dict, Optional
 from dataclasses import dataclass
 from jira import JIRA
+import asyncio
 
 from ..config.settings import Settings
 from .schemas import (
@@ -135,19 +136,38 @@ class JiraAgent:
             self.logger.error(f"Error executing action: {str(e)}", exc_info=True)
             raise
 
-    async def get_projects(self) -> List:
-        """Get list of accessible Jira projects"""
-        return await self.jira.projects()
+    async def get_projects(self) -> List[Dict[str, str]]:
+        """Get list of Jira projects"""
+        try:
+            # Run synchronous Jira call in thread pool
+            loop = asyncio.get_running_loop()
+            projects = await loop.run_in_executor(None, self.jira.projects)
+            
+            # Convert projects to dictionary list
+            return [
+                {
+                    "key": project.key,
+                    "name": project.name,
+                    "description": getattr(project, "description", "")
+                }
+                for project in projects
+            ]
+        except Exception as e:
+            raise JiraError(f"Failed to fetch projects: {str(e)}", JiraErrorType.UNKNOWN)
 
     async def validate_connection(self) -> bool:
         """Validate Jira connection by invoking projects method"""
-        await self.jira.projects()
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, self.jira.projects)
         return True
 
     async def check_jira_connection(self) -> bool:
         """Check Jira connection status"""
         try:
-            await self.jira.projects()
+            # Create a future for the synchronous projects() call
+            loop = asyncio.get_running_loop()
+            # Run the synchronous Jira call in a thread pool
+            await loop.run_in_executor(None, self.jira.projects)
             return True
         except Exception as e:
             self.logger.error(f"Jira connection check failed: {str(e)}")

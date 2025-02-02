@@ -65,12 +65,11 @@ def mock_agent() -> JiraAgent:
     agent = AsyncMock(spec=JiraAgent)
     agent.check_jira_connection = AsyncMock(return_value=True)
     agent.check_llm_connection = AsyncMock(return_value=True)
-    # Fix: Return properly structured project data
     agent.get_projects = AsyncMock(return_value=[
         {
             "key": "TEST",
             "name": "Test Project",
-            "description": "Test Description" 
+            "description": "Test Description"
         }
     ])
     return agent
@@ -90,6 +89,18 @@ def mock_http_response() -> Dict[str, Any]:
         "content": "Test content",
         "headers": {"Content-Type": "application/json"}
     }
+
+@pytest.fixture
+def mock_jira():
+    mock = AsyncMock()
+    mock.projects = AsyncMock(return_value=[
+        SimpleNamespace(
+            key="TEST",
+            name="Test Project",
+            description="Test Description"
+        )
+    ])
+    return mock
 
 @pytest.fixture(autouse=True)
 def setup_logging():

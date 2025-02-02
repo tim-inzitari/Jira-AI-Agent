@@ -62,22 +62,13 @@ async def process_command(
         )
 
 @router.get("/projects", response_model=List[ProjectResponse])
-async def list_projects(
-    agent: JiraAgent = Depends(get_agent)
-) -> List[ProjectResponse]:
-    """List available Jira projects"""
+async def list_projects(agent: JiraAgent = Depends(get_agent)):
+    """List Jira projects"""
     try:
         projects = await agent.get_projects()
-        # Fix: Handle both dict and object responses
-        return [
-            ProjectResponse(
-                key=p["key"] if isinstance(p, dict) else p.key,
-                name=p["name"] if isinstance(p, dict) else p.name,
-                description=p.get("description", "") if isinstance(p, dict) else getattr(p, "description", "")
-            ) for p in projects
-        ]
+        return [ProjectResponse(**project) for project in projects]
     except Exception as e:
-        logger.error(f"Failed to list projects: {str(e)}", exc_info=True)
+        logger.error(f"Failed to list projects: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/health")
