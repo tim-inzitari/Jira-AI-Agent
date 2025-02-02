@@ -24,45 +24,43 @@ class JiraIssue:
     description: Optional[str] = ""
 
 class JiraAgent:
-    """Core agent for processing natural language Jira commands"""
+    """Jira agent for handling Jira operations"""
     
     def __init__(self, settings: Settings):
         self.settings = settings
         self.logger = logging.getLogger(__name__)
-        self._init_services()
+        
+        # Initialize Jira client
+        self.jira = JIRA(
+            server=str(settings.JIRA_SERVER),
+            basic_auth=(settings.JIRA_USER, settings.JIRA_TOKEN)
+        )
+        
+        # Initialize LLM provider
+        self.llm = create_llm_provider(settings)
+        
+        # Protected projects
+        self.protected_projects = settings.PROTECTED_PROJECTS.split(',')
 
-    def _init_services(self) -> None:
-        """Initialize required services"""
-        self._init_jira()
-        self._init_llm()
-        self._init_validators()
-
-    def _init_jira(self) -> None:
-        """Initialize JIRA client"""
+    async def get_projects(self) -> List[Dict]:
+        """Get list of available Jira projects"""
         try:
-            jira_server = str(self.settings.JIRA_SERVER)
-            self.jira = JIRA(
-                server=jira_server,                
-                basic_auth=(self.settings.JIRA_USER, self.settings.JIRA_TOKEN)
-            )
-            self._validate_jira_connection()
+            # Run the synchronous Jira call in a thread pool
+            loop = asyncio.get_running_loop()
+            projects = await loop.run_in_executor(None, self.jira.projects)
+            
+            # Convert Jira project objects to dictionaries
+            return [
+                {
+                    "key": project.key,
+                    "name": project.name,
+                    "description": getattr(project, "description", "")
+                }
+                for project in projects
+            ]
         except Exception as e:
-            raise ConnectionError(f"JIRA initialization failed: {str(e)}")
-
-    def _validate_jira_connection(self):
-        """Validate JIRA connection"""
-        try:
-            self.jira.myself()
-        except Exception as e:
-            raise ConnectionError(f"JIRA connection failed: {str(e)}")
-
-    def _init_llm(self) -> None:
-        """Initialize LLM provider"""
-        self.llm = create_llm_provider(self.settings)
-
-    def _init_validators(self) -> None:
-        """Initialize validation rules"""
-        self.protected_projects = set(self.settings.PROTECTED_PROJECTS.split(','))
+            self.logger.error(f"Failed to fetch projects: {str(e)}")
+            raise JiraError(f"Failed to fetch projects: {str(e)}", JiraErrorType.UNKNOWN)
 
     async def process_command(self, command: str, project: str = None, dry_run: bool = False) -> List[Dict]:
         """Process natural language command"""
@@ -135,25 +133,6 @@ class JiraAgent:
         except Exception as e:
             self.logger.error(f"Error executing action: {str(e)}", exc_info=True)
             raise
-
-    async def get_projects(self) -> List[Dict[str, str]]:
-        """Get list of Jira projects"""
-        try:
-            # Run synchronous Jira call in thread pool
-            loop = asyncio.get_running_loop()
-            projects = await loop.run_in_executor(None, self.jira.projects)
-            
-            # Convert projects to dictionary list
-            return [
-                {
-                    "key": project.key,
-                    "name": project.name,
-                    "description": getattr(project, "description", "")
-                }
-                for project in projects
-            ]
-        except Exception as e:
-            raise JiraError(f"Failed to fetch projects: {str(e)}", JiraErrorType.UNKNOWN)
 
     async def validate_connection(self) -> bool:
         """Validate Jira connection by invoking projects method"""

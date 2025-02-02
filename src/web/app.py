@@ -29,7 +29,7 @@ def create_app() -> FastAPI:
     # Configure middleware
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # Replace with settings.CORS_ORIGINS when implemented
+        allow_origins=["*"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -37,13 +37,14 @@ def create_app() -> FastAPI:
     
     # Static files and templates
     app.mount("/static", StaticFiles(directory="static"), name="static")
-    app.templates = Jinja2Templates(directory="templates")
+    templates = Jinja2Templates(directory="templates")
+    app.state.templates = templates  # Make templates available to routes
     
     # Initialize agent
     app.agent = JiraAgent(settings)
     
     # Register routes
-    app.include_router(router, prefix="/api/v1", tags=["api"])
+    app.include_router(router)  # Remove the prefix to allow root route handling
     
     # Add health check
     @app.get("/health", tags=["monitoring"])
