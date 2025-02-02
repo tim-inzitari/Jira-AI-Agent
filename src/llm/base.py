@@ -7,11 +7,11 @@ from ..config.settings import Settings
 class LLMResponse(BaseModel):
     """Standardized LLM response format"""
     content: str
+    actions: List[Dict] = Field(default_factory=list)
     raw_response: Optional[Dict[str, Any]] = None
     model: Optional[str] = None
     usage: Optional[Dict[str, int]] = None
-    actions: List[Dict] = Field(default_factory=list)  # Add actions field
-
+    
 class LLMException(Exception):
     """Base exception for LLM-related errors"""
     pass

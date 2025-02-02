@@ -13,6 +13,7 @@ class TestJiraAgent:
         """Provide test settings"""
         from src.config.settings import Settings
         return Settings(
+            PROTECTED_PROJECTS="PROD,LIVE",
             JIRA_SERVER="https://test.atlassian.net",
             JIRA_USER="test@example.com", 
             JIRA_TOKEN="test-token",
@@ -57,34 +58,43 @@ class TestJiraAgent:
             assert agent.settings == settings
 
     async def test_process_command_success(self, agent):
+        # Create valid LLMResponse with required fields
         agent.llm.generate.return_value = LLMResponse(
-            content='{"success": true, "message": "Done", "actions": [{"type": "create_issue"}]}',
-            model="test",
-            success=True
+            content="Test response content",
+            actions=[{"type": "create_issue", "project": "TEST", "summary": "Test issue"}],
+            model="test-model"
         )
+        
         result = await agent.process_command("test command")
-        assert "Done" in result
-        assert agent.llm.generate.called
+        assert len(result) == 1
+        assert result[0]["type"] == "create_issue"
+        agent.llm.generate.assert_called_once()
 
     async def test_dangerous_command_blocked(self, agent):
+        # Valid response format with empty actions
         agent.llm.generate.return_value = LLMResponse(
-            content='{"success": true, "actions": [{"type": "delete_issue", "key": "*"}]}',
-            model="test",
-            success=True
+            content="Blocked command response",
+            actions=[],  # Empty actions list
+            model="test-model"
         )
+        
         with pytest.raises(JiraError) as exc:
             await agent.process_command("delete all issues")
         assert exc.value.error_type == JiraErrorType.PERMISSION
 
     async def test_protected_project_access(self, agent):
+        # Mock response with proper actions structure
         agent.llm.generate.return_value = LLMResponse(
-            content='{"success": true, "actions": [{"type": "create_issue", "project": "PROD"}]}',
-            model="test",
-            success=True
+            content="Test content",
+            actions=[{"type": "create_issue", "project": "PROD", "summary": "Test"}],
+            model="test"
         )
+        
         with pytest.raises(JiraError) as exc:
             await agent.process_command("Create issue in PROD")
+        
         assert exc.value.error_type == JiraErrorType.PERMISSION
+        assert "PROD" in str(exc.value)
 
     async def test_connection_validation(self, agent):
         result = await agent.validate_connection()

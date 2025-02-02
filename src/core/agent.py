@@ -103,8 +103,13 @@ class JiraAgent:
     def _parse_actions(self, response: Dict) -> List[Dict]:
         """Parse and validate LLM response into actions"""
         actions = []
-        for action in response.get('actions', []):  # Now works with dict
-            validate_action(action)
+        for action in response.get('actions', []):
+            validate_action(action)  # Ensure this checks for 'project' field
+            
+            # Add explicit project check
+            if 'project' not in action:
+                raise JiraError("Missing project in action", JiraErrorType.VALIDATION)
+                
             if action['project'] in self.protected_projects:
                 raise JiraError(
                     f"Access denied to protected project: {action['project']}",
